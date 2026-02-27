@@ -42,6 +42,21 @@ build_windows.bat
 dist\MinerU-GUI.exe
 ```
 
+## GitHub 里怎么下载
+
+如果你是普通用户，不想自己打包，推荐直接下载发布好的 `exe`：
+
+1. 打开仓库主页，点击右侧 **Releases**（发布）。
+2. 进入最新版本（如 `v1.0.0`）。
+3. 在 **Assets** 中下载 `MinerU-GUI.exe`（或 `MinerU-GUI-windows.zip`）。
+4. 下载后双击运行即可。
+
+如果仓库暂时没有 Releases，也可以下载源码后本地打包：
+
+1. 点击仓库绿色按钮 **Code**。
+2. 选择 **Download ZIP**。
+3. 解压后按本文档“打包为 Windows 可执行文件”步骤执行 `build_windows.bat`。
+
 ## 给最终用户的使用流程（无需手工装 MinerU）
 
 1. 打开 `MinerU-GUI.exe`。
