@@ -1,14 +1,16 @@
 # MinerU GUI（Windows 可下载运行）
 
-这是一个基于 **MinerU CLI** 的可视化桌面软件，支持在 Windows 上打包为可下载的 `exe`。
+这是一个基于 **MinerU CLI** 的可视化桌面软件，支持在 Windows 上打包为可下载的 `exe`，并提供**应用内一键安装/升级 MinerU**，用户无需手动安装命令行。
 
 ## 功能
 
+- 一键安装/升级 MinerU（内置 `python -m pip install -U mineru`）
+- 检测 MinerU 是否可用（`mineru --help`）
 - 选择输入文档（PDF/图片）
 - 选择输出目录
 - 配置语言、设备（CPU/CUDA/MPS）和 OCR 开关
 - 支持附加自定义参数
-- 实时查看 MinerU 运行日志
+- 实时查看运行日志
 - 一键停止任务
 
 ## 本地运行
@@ -40,14 +42,15 @@ build_windows.bat
 dist\MinerU-GUI.exe
 ```
 
-## 使用说明
+## 给最终用户的使用流程（无需手工装 MinerU）
 
-1. `MinerU 可执行命令`：默认是 `mineru`，如果你安装的是其他路径，可点“浏览”选择 `mineru.exe`。
-2. 选择输入文件与输出目录。
-3. 根据需要设置语言、设备和 OCR。
-4. 点击“开始处理”，日志窗口会显示实时进度。
+1. 打开 `MinerU-GUI.exe`。
+2. 点击 **“一键安装/升级 MinerU”**，等待日志显示安装完成。
+3. 点击 **“检测安装”**，确认 `mineru --help` 可运行。
+4. 选择输入文件、输出目录，按需配置参数后点击 **“开始处理”**。
 
 ## 注意事项
 
-- 本软件是 MinerU 的可视化封装，需确保 MinerU 已正确安装并可调用。
-- 如果使用 GPU，请确保对应驱动与运行环境已安装。
+- 一键安装依赖网络和 pip 源可用性。
+- 若企业环境限制网络，可在“MinerU 安装命令”中替换为内部源命令。
+- 若 `mineru` 命令不在 PATH，可在“MinerU 可执行命令”填写完整路径（例如 `C:\\path\\to\\mineru.exe`）。

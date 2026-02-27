@@ -1,5 +1,6 @@
 import os
 import queue
+import shlex
 import subprocess
 import threading
 import tkinter as tk
@@ -19,7 +20,7 @@ def build_command(executable: str, input_path: str, output_dir: str, language: s
         cmd.extend(["--device", device])
 
     if extra_args.strip():
-        cmd.extend(extra_args.strip().split())
+        cmd.extend(shlex.split(extra_args.strip()))
 
     return cmd
 
@@ -28,7 +29,7 @@ class MinerUGUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("MinerU 可视化工具")
-        self.geometry("900x600")
+        self.geometry("950x650")
 
         self.log_queue: queue.Queue[str] = queue.Queue()
         self.running_process: subprocess.Popen | None = None
@@ -44,10 +45,23 @@ class MinerUGUI(tk.Tk):
             frame.columnconfigure(i, weight=1 if i == 1 else 0)
 
         row = 0
+        ttk.Label(frame, text="Python 命令:").grid(row=row, column=0, sticky="w", pady=4)
+        default_python = "python"
+        self.python_var = tk.StringVar(value=default_python)
+        ttk.Entry(frame, textvariable=self.python_var).grid(row=row, column=1, sticky="ew", pady=4)
+        ttk.Button(frame, text="浏览", command=self._browse_python).grid(row=row, column=2, padx=6)
+
+        row += 1
+        ttk.Label(frame, text="MinerU 安装命令:").grid(row=row, column=0, sticky="w", pady=4)
+        self.install_cmd_var = tk.StringVar(value="-m pip install -U mineru")
+        ttk.Entry(frame, textvariable=self.install_cmd_var).grid(row=row, column=1, sticky="ew", pady=4)
+        ttk.Button(frame, text="一键安装/升级 MinerU", command=self.install_mineru).grid(row=row, column=2, padx=6)
+
+        row += 1
         ttk.Label(frame, text="MinerU 可执行命令:").grid(row=row, column=0, sticky="w", pady=4)
         self.executable_var = tk.StringVar(value="mineru")
         ttk.Entry(frame, textvariable=self.executable_var).grid(row=row, column=1, sticky="ew", pady=4)
-        ttk.Button(frame, text="浏览", command=self._browse_executable).grid(row=row, column=2, padx=6)
+        ttk.Button(frame, text="检测安装", command=self.check_mineru).grid(row=row, column=2, padx=6)
 
         row += 1
         ttk.Label(frame, text="输入文件:").grid(row=row, column=0, sticky="w", pady=4)
@@ -103,10 +117,10 @@ class MinerUGUI(tk.Tk):
         scrollbar.grid(row=row, column=3, sticky="ns")
         self.log_text.configure(yscrollcommand=scrollbar.set)
 
-    def _browse_executable(self):
-        path = filedialog.askopenfilename(title="选择 MinerU 可执行文件")
+    def _browse_python(self):
+        path = filedialog.askopenfilename(title="选择 Python 可执行文件")
         if path:
-            self.executable_var.set(path)
+            self.python_var.set(path)
 
     def _browse_input(self):
         path = filedialog.askopenfilename(title="选择输入文件", filetypes=[("Document", "*.pdf *.png *.jpg *.jpeg *.bmp"), ("All Files", "*.*")])
@@ -131,6 +145,59 @@ class MinerUGUI(tk.Tk):
             self._append_log(line)
         self.after(100, self._flush_logs)
 
+    def _run_subprocess(self, cmd: list[str], done_message: str):
+        try:
+            self.running_process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+            assert self.running_process.stdout is not None
+            for line in self.running_process.stdout:
+                self.log_queue.put(line.rstrip())
+            code = self.running_process.wait()
+            self.log_queue.put(f"{done_message}，退出码: {code}")
+        except FileNotFoundError:
+            self.log_queue.put("命令不存在，请检查路径配置。")
+        except Exception as exc:  # noqa: BLE001
+            self.log_queue.put(f"运行失败: {exc}")
+        finally:
+            self.running_process = None
+            self.after(0, lambda: self.start_btn.config(state=tk.NORMAL))
+            self.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+
+    def _start_background_run(self, cmd: list[str], done_message: str):
+        self._append_log(f"开始执行: {' '.join(cmd)}")
+        self.start_btn.config(state=tk.DISABLED)
+        self.stop_btn.config(state=tk.NORMAL)
+        thread = threading.Thread(target=self._run_subprocess, args=(cmd, done_message), daemon=True)
+        thread.start()
+
+    def install_mineru(self):
+        python_cmd = self.python_var.get().strip()
+        install_args = self.install_cmd_var.get().strip()
+
+        if not python_cmd:
+            messagebox.showerror("错误", "请先填写 Python 命令")
+            return
+        if not install_args:
+            messagebox.showerror("错误", "请先填写安装命令")
+            return
+
+        cmd = [python_cmd, *shlex.split(install_args)]
+        self._start_background_run(cmd, "MinerU 安装任务结束")
+
+    def check_mineru(self):
+        executable = self.executable_var.get().strip()
+        if not executable:
+            messagebox.showerror("错误", "请先填写 MinerU 可执行命令")
+            return
+
+        cmd = [executable, "--help"]
+        self._start_background_run(cmd, "MinerU 检测结束")
+
     def start_processing(self):
         input_path = self.input_var.get().strip()
         output_dir = self.output_var.get().strip()
@@ -154,38 +221,7 @@ class MinerUGUI(tk.Tk):
             device=self.device_var.get(),
             extra_args=self.extra_args_var.get(),
         )
-
-        self._append_log(f"开始执行: {' '.join(cmd)}")
-        self.start_btn.config(state=tk.DISABLED)
-        self.stop_btn.config(state=tk.NORMAL)
-
-        thread = threading.Thread(target=self._run_command, args=(cmd,), daemon=True)
-        thread.start()
-
-    def _run_command(self, cmd: list[str]):
-        try:
-            self.running_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
-
-            assert self.running_process.stdout is not None
-            for line in self.running_process.stdout:
-                self.log_queue.put(line.rstrip())
-
-            code = self.running_process.wait()
-            self.log_queue.put(f"执行结束，退出码: {code}")
-        except FileNotFoundError:
-            self.log_queue.put("找不到 MinerU 可执行程序，请检查命令路径。")
-        except Exception as e:  # noqa: BLE001
-            self.log_queue.put(f"运行失败: {e}")
-        finally:
-            self.running_process = None
-            self.after(0, lambda: self.start_btn.config(state=tk.NORMAL))
-            self.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+        self._start_background_run(cmd, "文档处理结束")
 
     def stop_processing(self):
         if self.running_process and self.running_process.poll() is None:
