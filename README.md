@@ -57,6 +57,26 @@ dist\MinerU-GUI.exe
 2. 选择 **Download ZIP**。
 3. 解压后按本文档“打包为 Windows 可执行文件”步骤执行 `build_windows.bat`。
 
+
+## 直接上传到 GitHub Release（自动化）
+
+仓库已支持自动上传：当你推送版本标签（如 `v1.0.0`）后，GitHub Actions 会自动：
+
+1. 在 `windows-latest` 构建 `MinerU-GUI.exe`
+2. 打包 `MinerU-GUI-windows.zip`
+3. 自动创建/更新对应 tag 的 Release，并上传两个文件到 Assets
+
+对应工作流文件：`.github/workflows/release.yml`。
+
+### 一次性发布命令
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+执行后去仓库的 **Releases** 页面即可看到并下载构建产物。
+
 ## 给最终用户的使用流程（无需手工装 MinerU）
 
 1. 打开 `MinerU-GUI.exe`。
