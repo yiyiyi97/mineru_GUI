@@ -77,6 +77,19 @@ git push origin v1.0.0
 
 执行后去仓库的 **Releases** 页面即可看到并下载构建产物。
 
+
+## 参数兼容说明（已修复）
+
+最新版 MinerU CLI 使用以下参数：
+
+- 输入路径：`-p/--path`
+- 输出目录：`-o/--output`
+- 解析方式：`-m/--method`（`auto|txt|ocr`）
+- 语言：`-l/--lang`
+- 设备：`-d/--device`
+
+本 GUI 已按上述参数构造命令，不再使用旧的 `--input`/`--ocr` 参数格式。
+
 ## 给最终用户的使用流程（无需手工装 MinerU）
 
 1. 打开 `MinerU-GUI.exe`。

@@ -7,6 +7,17 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 
+def build_command(executable: str, input_path: str, output_dir: str, language: str, force_ocr: bool, device: str, extra_args: str) -> list[str]:
+    cmd = [executable, "-p", input_path, "-o", output_dir]
+
+    method = "ocr" if force_ocr else "auto"
+    cmd.extend(["-m", method])
+
+    if language and language != "auto":
+        cmd.extend(["-l", language])
+
+    if device and device != "auto":
+        cmd.extend(["-d", device])
 def build_command(executable: str, input_path: str, output_dir: str, language: str, ocr: bool, device: str, extra_args: str) -> list[str]:
     cmd = [executable, "--input", input_path, "--output", output_dir]
 
@@ -46,6 +57,7 @@ class MinerUGUI(tk.Tk):
 
         row = 0
         ttk.Label(frame, text="Python 命令:").grid(row=row, column=0, sticky="w", pady=4)
+        self.python_var = tk.StringVar(value="python")
         default_python = "python"
         self.python_var = tk.StringVar(value=default_python)
         ttk.Entry(frame, textvariable=self.python_var).grid(row=row, column=1, sticky="ew", pady=4)
@@ -78,12 +90,19 @@ class MinerUGUI(tk.Tk):
         row += 1
         ttk.Label(frame, text="语言:").grid(row=row, column=0, sticky="w", pady=4)
         self.language_var = tk.StringVar(value="auto")
+        lang_values = ["auto", "ch", "en", "korean", "japan", "chinese_cht"]
+        ttk.Combobox(frame, textvariable=self.language_var, values=lang_values, state="readonly").grid(row=row, column=1, sticky="w", pady=4)
         lang_box = ttk.Combobox(frame, textvariable=self.language_var, values=["auto", "zh", "en", "ja", "ko"], state="readonly")
         lang_box.grid(row=row, column=1, sticky="w", pady=4)
 
         row += 1
         ttk.Label(frame, text="设备:").grid(row=row, column=0, sticky="w", pady=4)
         self.device_var = tk.StringVar(value="auto")
+        ttk.Combobox(frame, textvariable=self.device_var, values=["auto", "cpu", "cuda", "cuda:0", "mps"], state="readonly").grid(row=row, column=1, sticky="w", pady=4)
+
+        row += 1
+        self.ocr_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(frame, text="强制 OCR 模式（对应 -m ocr）", variable=self.ocr_var).grid(row=row, column=1, sticky="w", pady=4)
         device_box = ttk.Combobox(frame, textvariable=self.device_var, values=["auto", "cpu", "cuda", "mps"], state="readonly")
         device_box.grid(row=row, column=1, sticky="w", pady=4)
 
@@ -199,6 +218,16 @@ class MinerUGUI(tk.Tk):
         self._start_background_run(cmd, "MinerU 检测结束")
 
     def start_processing(self):
+        executable = self.executable_var.get().strip()
+        input_path = self.input_var.get().strip()
+        output_dir = self.output_var.get().strip()
+
+        if not executable:
+            messagebox.showerror("错误", "请先填写 MinerU 可执行命令")
+            return
+        if not input_path:
+            messagebox.showerror("错误", "请先选择输入文件")
+            return
         input_path = self.input_var.get().strip()
         output_dir = self.output_var.get().strip()
 
@@ -213,6 +242,11 @@ class MinerUGUI(tk.Tk):
         os.makedirs(output_dir, exist_ok=True)
 
         cmd = build_command(
+            executable=executable,
+            input_path=input_path,
+            output_dir=output_dir,
+            language=self.language_var.get(),
+            force_ocr=self.ocr_var.get(),
             executable=self.executable_var.get().strip(),
             input_path=input_path,
             output_dir=output_dir,
