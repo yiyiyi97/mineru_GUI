@@ -18,6 +18,17 @@ def build_command(executable: str, input_path: str, output_dir: str, language: s
 
     if device and device != "auto":
         cmd.extend(["-d", device])
+def build_command(executable: str, input_path: str, output_dir: str, language: str, ocr: bool, device: str, extra_args: str) -> list[str]:
+    cmd = [executable, "--input", input_path, "--output", output_dir]
+
+    if language and language != "auto":
+        cmd.extend(["--lang", language])
+
+    if ocr:
+        cmd.append("--ocr")
+
+    if device and device != "auto":
+        cmd.extend(["--device", device])
 
     if extra_args.strip():
         cmd.extend(shlex.split(extra_args.strip()))
@@ -47,6 +58,8 @@ class MinerUGUI(tk.Tk):
         row = 0
         ttk.Label(frame, text="Python 命令:").grid(row=row, column=0, sticky="w", pady=4)
         self.python_var = tk.StringVar(value="python")
+        default_python = "python"
+        self.python_var = tk.StringVar(value=default_python)
         ttk.Entry(frame, textvariable=self.python_var).grid(row=row, column=1, sticky="ew", pady=4)
         ttk.Button(frame, text="浏览", command=self._browse_python).grid(row=row, column=2, padx=6)
 
@@ -79,6 +92,8 @@ class MinerUGUI(tk.Tk):
         self.language_var = tk.StringVar(value="auto")
         lang_values = ["auto", "ch", "en", "korean", "japan", "chinese_cht"]
         ttk.Combobox(frame, textvariable=self.language_var, values=lang_values, state="readonly").grid(row=row, column=1, sticky="w", pady=4)
+        lang_box = ttk.Combobox(frame, textvariable=self.language_var, values=["auto", "zh", "en", "ja", "ko"], state="readonly")
+        lang_box.grid(row=row, column=1, sticky="w", pady=4)
 
         row += 1
         ttk.Label(frame, text="设备:").grid(row=row, column=0, sticky="w", pady=4)
@@ -88,6 +103,12 @@ class MinerUGUI(tk.Tk):
         row += 1
         self.ocr_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(frame, text="强制 OCR 模式（对应 -m ocr）", variable=self.ocr_var).grid(row=row, column=1, sticky="w", pady=4)
+        device_box = ttk.Combobox(frame, textvariable=self.device_var, values=["auto", "cpu", "cuda", "mps"], state="readonly")
+        device_box.grid(row=row, column=1, sticky="w", pady=4)
+
+        row += 1
+        self.ocr_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(frame, text="启用 OCR", variable=self.ocr_var).grid(row=row, column=1, sticky="w", pady=4)
 
         row += 1
         ttk.Label(frame, text="附加参数:").grid(row=row, column=0, sticky="w", pady=4)
@@ -207,6 +228,13 @@ class MinerUGUI(tk.Tk):
         if not input_path:
             messagebox.showerror("错误", "请先选择输入文件")
             return
+        input_path = self.input_var.get().strip()
+        output_dir = self.output_var.get().strip()
+
+        if not input_path:
+            messagebox.showerror("错误", "请先选择输入文件")
+            return
+
         if not os.path.exists(input_path):
             messagebox.showerror("错误", "输入文件不存在")
             return
@@ -219,6 +247,11 @@ class MinerUGUI(tk.Tk):
             output_dir=output_dir,
             language=self.language_var.get(),
             force_ocr=self.ocr_var.get(),
+            executable=self.executable_var.get().strip(),
+            input_path=input_path,
+            output_dir=output_dir,
+            language=self.language_var.get(),
+            ocr=self.ocr_var.get(),
             device=self.device_var.get(),
             extra_args=self.extra_args_var.get(),
         )
